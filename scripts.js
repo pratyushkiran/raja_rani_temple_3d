@@ -229,34 +229,34 @@ function setCameraView(position, target) {
 }
 
 // Button Event Listeners
-const maxDim = 14;
-document.getElementById("wheelView").addEventListener("click", () => {
-  setCameraView(
-    new THREE.Vector3(0, maxDim * 0.5, maxDim * 1.2),
-    new THREE.Vector3(0, 0, 0)
-  );
-});
+// const maxDim = 14;
+// document.getElementById("wheelView").addEventListener("click", () => {
+//   setCameraView(
+//     new THREE.Vector3(0, maxDim * 0.5, maxDim * 1.2),
+//     new THREE.Vector3(0, 0, 0)
+//   );
+// });
 
-document.getElementById("topView").addEventListener("click", () => {
-  setCameraView(
-    new THREE.Vector3(0, maxDim * 4, 0),
-    new THREE.Vector3(0, 0, 0)
-  );
-});
+// document.getElementById("topView").addEventListener("click", () => {
+//   setCameraView(
+//     new THREE.Vector3(0, maxDim * 4, 0),
+//     new THREE.Vector3(0, 0, 0)
+//   );
+// });
 
-document.getElementById("frontView").addEventListener("click", () => {
-  setCameraView(
-    new THREE.Vector3(0, maxDim * 0.8, maxDim * 2),
-    new THREE.Vector3(0, 0, 0)
-  );
-});
+// document.getElementById("frontView").addEventListener("click", () => {
+//   setCameraView(
+//     new THREE.Vector3(0, maxDim * 0.8, maxDim * 2),
+//     new THREE.Vector3(0, 0, 0)
+//   );
+// });
 
-document.getElementById("sideView").addEventListener("click", () => {
-  setCameraView(
-    new THREE.Vector3(maxDim * 2, maxDim * 0.8, 0),
-    new THREE.Vector3(0, 0, 0)
-  );
-});
+// document.getElementById("sideView").addEventListener("click", () => {
+//   setCameraView(
+//     new THREE.Vector3(maxDim * 2, maxDim * 0.8, 0),
+//     new THREE.Vector3(0, 0, 0)
+//   );
+// });
 
 // // Mouse movement for player control
 // window.addEventListener("pointermove", (event) => {
