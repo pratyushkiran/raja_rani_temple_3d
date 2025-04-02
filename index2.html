@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Three.js GLB Loader with Orbit Controls, HDRI, and Grass Shader
+    </title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Load Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <!-- Load OrbitControls from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/controls/OrbitControls.js"></script>
+    <!-- Load GLTFLoader from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Load RGBELoader for HDRI from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/RGBELoader.js"></script>
+
+    <script>
+      // Create scene, camera, and renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.physicallyCorrectLights = true;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      document.body.appendChild(renderer.domElement);
+
+      // Set up orbital controls
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 1;
+      controls.maxDistance = 100;
+
+      // Clock for grass animation
+      const clock = new THREE.Clock();
+
+      // Grass Shader Material
+      const grassMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          fTime: { value: 0.0 },
+          vPlayerPosition: { value: new THREE.Vector3(0.0, -1.0, 0.0) },
+          fPlayerColliderRadius: { value: 1.1 },
+        },
+        vertexShader: `
+          uniform float fTime;
+          uniform vec3 vPlayerPosition;
+          uniform float fPlayerColliderRadius;
+        
+          varying float fDistanceFromGround;
+          varying vec3 vInstanceColor;
+
+          float rand(float n){return fract(sin(n) * 43758.5453123);}
+
+          float rand(vec2 n) { 
+            return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+          }
+          
+          float createNoise(vec2 n) {
+            vec2 d = vec2(0.0, 1.0);
+            vec2 b = floor(n);
+            vec2 f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+            return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+          }
+
+          vec3 localToWorld(vec3 target) {
+            return (modelMatrix * vec4(target, 1.0)).xyz;
+          }
+        
+          void main() {
+            fDistanceFromGround = max(0.0, position.y);
+            vInstanceColor = vec3(1.0); // Default color since we're not using instancing
+            
+            vec3 worldPosition = localToWorld(position);
+
+            float noise = createNoise(vec2(position.x, position.z)) * 0.6 + 0.4;
+            float distanceFromPlayer = length(vPlayerPosition - worldPosition);
+
+            vec3 sway = 0.1 * vec3(
+              cos(fTime) * noise * fDistanceFromGround,
+              0.0,
+              0.1
+            );
+            
+            vec3 vNormal = normalize(vPlayerPosition - worldPosition);
+            vNormal.y = abs(vNormal.y);
+
+            float fOffset = fPlayerColliderRadius - distanceFromPlayer;
+            vec3 vPlayerOffset = -(vNormal * fOffset);
+
+            worldPosition += mix(
+              sway * min(1.0, distanceFromPlayer / 4.0),
+              vPlayerOffset,
+              float(distanceFromPlayer < fPlayerColliderRadius)
+            );
+
+            gl_Position = projectionMatrix * viewMatrix * vec4(worldPosition, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying float fDistanceFromGround;
+          varying vec3 vInstanceColor;
+        
+          void main() {
+            vec3 colorDarkest = vec3(17.0/255.0, 59.0/255.0, 0.0);
+            vec3 colorBrightest = vec3(125.0/255.0, 141.0/255.0, 34.0/255.0);
+            vec3 color = mix(
+              colorDarkest,
+              colorBrightest,
+              fDistanceFromGround / 2.0
+            );
+            color = clamp(color, 0.0, 1.0);
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `,
+        side: THREE.DoubleSide,
+      });
+
+      // Load HDRI environment map
+      const rgbeLoader = new THREE.RGBELoader();
+      rgbeLoader.setDataType(THREE.UnsignedByteType);
+      rgbeLoader.load(
+        "https://threejs.org/examples/textures/equirectangular/venice_sunset_1k.hdr",
+        function (texture) {
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+          scene.background = texture;
+          scene.environment = texture;
+        },
+        undefined,
+        function (error) {
+          console.error("Error loading HDRI:", error);
+        }
+      );
+
+      // Add basic lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+      directionalLight.position.set(0, 1, 0);
+      scene.add(directionalLight);
+
+      // Initialize GLTFLoader
+      const loader = new THREE.GLTFLoader();
+
+      // Load the GLB file
+      loader.load(
+        "assets/3D Models/konark-sun-temple-grass-plane.glb",
+        function (gltf) {
+          const model = gltf.scene;
+          scene.add(model);
+
+          // Center the model
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          model.position.sub(center);
+
+          // Adjust camera position
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const fov = camera.fov * (Math.PI / 180);
+          let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+          cameraZ *= 1.5;
+          camera.position.set(0, cameraZ * 0.5, cameraZ);
+
+          // Apply grass shader only to the plane
+          model.traverse((child) => {
+            if (child.isMesh) {
+              // Assuming the plane has "plane" in its name or is identifiable
+              if (child.name.toLowerCase().includes("plane")) {
+                child.material = grassMaterial;
+                child.material.envMap = scene.environment;
+                child.material.envMapIntensity = 1.0;
+                child.material.needsUpdate = true;
+              } else {
+                // Apply environment map to other objects
+                child.material.envMap = scene.environment;
+                child.material.envMapIntensity = 1.0;
+                child.material.needsUpdate = true;
+              }
+            }
+          });
+        },
+        function (xhr) {
+          console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+        },
+        function (error) {
+          console.error("An error occurred:", error);
+        }
+      );
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+
+        // Update grass shader time
+        grassMaterial.uniforms.fTime.value = clock.getElapsedTime();
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    </script>
+  </body>
+</html>
