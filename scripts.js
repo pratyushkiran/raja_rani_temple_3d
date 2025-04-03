@@ -46,7 +46,7 @@ function checkLoadingComplete() {
 // Load Static Temple Model
 let templeModel;
 loader.load(
-  "assets/3D Models/raja_rani_temple.glb",
+  "assets/3D Models/raja_rani_temple8_coconut_trees_lawn_trees_buildings_added.glb",
   (gltf) => {
     templeModel = gltf.scene;
     scene.add(templeModel);
@@ -176,7 +176,7 @@ directionalLight2.position.set(-10, 10, -12);
 scene.add(directionalLight2);
 
 // Add linear fog
-scene.fog = new THREE.Fog(0x625653, 50, 110);
+scene.fog = new THREE.Fog(0x625653, 90, 200);
 
 // Orbit Controls Configuration
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
