@@ -6,7 +6,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   10000
 );
-camera.position.set(40, 40, 40);
+camera.position.set(20, 20, -20);
 const target = new THREE.Vector3(0, 20, 0);
 camera.lookAt(target);
 
