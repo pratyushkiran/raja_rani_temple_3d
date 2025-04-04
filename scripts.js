@@ -46,7 +46,7 @@ function checkLoadingComplete() {
 // Load Static Temple Model
 let templeModel;
 loader.load(
-  "assets/3D Models/raja_rani_temple8_coconut_trees_lawn_trees_buildings_added.glb",
+  "assets/3D Models/raja_rani_temple9_coconut_trees_lawn_trees_buildings_added.glb",
   (gltf) => {
     templeModel = gltf.scene;
     scene.add(templeModel);
